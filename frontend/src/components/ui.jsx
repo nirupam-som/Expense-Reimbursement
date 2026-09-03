@@ -1,6 +1,7 @@
 /** Small shared presentational pieces. */
 
-const CURRENCY = new Intl.NumberFormat('en-IE', { style: 'currency', currency: 'EUR' })
+// en-IN also gives Indian digit grouping (₹1,22,200.00 rather than ₹122,200.00).
+const CURRENCY = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' })
 
 /** Amounts arrive as strings (the API preserves decimal precision), so parse then format. */
 export const formatMoney = (value) => CURRENCY.format(Number(value ?? 0))
