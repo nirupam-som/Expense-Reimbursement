@@ -31,18 +31,20 @@ export class ApiError extends Error {
   }
 }
 
-export async function apiFetch(path, { method = 'GET', body, ...rest } = {}) {
+export async function apiFetch(path, { method = 'GET', body, headers, ...rest } = {}) {
   const token = getToken()
 
   const response = await fetch(`${BASE_URL}${path}`, {
     method,
+    ...rest,
+    // Spread after `rest` on purpose: a caller-supplied `headers` object must merge with
+    // the auth header rather than replace it and silently drop the token.
     headers: {
       ...(body ? { 'Content-Type': 'application/json' } : {}),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...rest.headers,
+      ...headers,
     },
     ...(body ? { body: JSON.stringify(body) } : {}),
-    ...rest,
   })
 
   if (!response.ok) {
