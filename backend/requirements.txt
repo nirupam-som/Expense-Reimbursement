@@ -1,0 +1,16 @@
+# Pinned exactly so a clone reproduces this environment.
+fastapi==0.141.1
+uvicorn[standard]==0.52.4
+sqlalchemy==2.0.52
+psycopg[binary]==3.3.5
+alembic==1.19.1
+pydantic==2.13.5
+pydantic-settings==2.15.0
+email-validator==2.3.0
+bcrypt==4.3.0
+pyjwt==2.13.0
+
+# tests
+pytest==8.4.2
+# httpx2, not httpx: starlette's TestClient deprecates the httpx 0.x backend.
+httpx2==2.12.0

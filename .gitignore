@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Environment / secrets — never commit these
+.env
+.env.local
+*.env
+!.env.example
+
+# Node
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Editors / OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
