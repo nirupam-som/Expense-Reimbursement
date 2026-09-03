@@ -50,16 +50,53 @@ chosen. At least one entry is a decision later reversed.
   refused, naming self-ownership distinctly. Sharing one function is what makes the bulk result
   and the single-report 403 provably consistent: they are the same call.
 
-## Decision 5 — Immutability enforced by database grants, not only by missing routes
+## Decision 5 — Immutability enforced by the database, not only by missing routes
 
-- **Chose:** No `PATCH`/`DELETE` routes for history tables, **and** the application's database
-  role has no `UPDATE`/`DELETE` privilege on `report_events` or `report_comments`.
+- **Chose:** No `PATCH`/`DELETE` routes for history tables, **and** a `BEFORE UPDATE OR DELETE`
+  trigger on `report_events` and `report_comments` that raises an exception.
 - **Rejected:** Relying on the application simply not offering an edit path.
 - **Why:** Goal 9 says nothing in the timeline can be edited or deleted after the fact,
   *including by approvers*. "We didn't build a route for it" is a promise about today's code; a
-  revoked grant holds even if a future refactor adds one by mistake. This only works because
-  migrations run under a different, more privileged role than the app connects with — noted in
-  `docs/schema.md`, since the two-role setup is the thing that makes the guarantee real.
+  database-level refusal holds even if a future refactor adds one by mistake.
+
+- **Later reversed:** the database half of this started as `REVOKE UPDATE, DELETE ON
+  report_events, report_comments`, and that is what `docs/architecture.md` and `docs/schema.md`
+  originally said. Writing the migration is what changed my mind: a `REVOKE` does not bind the
+  table's *owner*, and it only would have meant anything if migrations ran as one role while the
+  application connected as a second, less privileged one. The free hosting tiers this deploys to
+  hand you a single role and encourage using it for everything — so the guarantee I had written
+  down would have been decorative in exactly the environment it shipped to, while still reading
+  as though it were airtight. A trigger holds for every non-superuser regardless of how roles are
+  configured, so I swapped to that and wrote a test that runs raw SQL `UPDATE` and `DELETE`
+  against both tables to prove the refusal is real rather than assumed. The cost is that
+  `TRUNCATE` still bypasses it (triggers are per-row), which is what the seed script relies on to
+  reset a demo database — an administrative path the application itself cannot reach.
+
+## Decision 7 — Rejection returns the report to Draft, and writes two history rows
+
+- **Chose:** Rejecting writes `submitted → rejected` (carrying the reason) *and*
+  `rejected → draft` in one transaction, leaving the report in Draft.
+- **Rejected:** Leaving the report in a `rejected` status that behaves like a draft.
+- **Why:** The brief says both things — that a report moves to *Rejected*, and that "the report
+  then returns to Draft, where its owner can edit it and submit it again". A single status cannot
+  satisfy both. Two rows do: the rejection and its reason stay permanently visible in the
+  timeline, while the report is immediately editable again with no special-case "rejected is
+  really a draft" logic anywhere. The visible trade-off is that the dashboard's status breakdown
+  never shows a standing "rejected" count, because rejected reports genuinely are drafts again —
+  the history is where rejections live.
+
+## Decision 8 — `submitted_at` is cleared on rejection, and dismissals are dropped on resubmission
+
+- **Chose:** Rejection sets `submitted_at` back to `NULL`; submitting deletes any
+  `stale_alert_dismissals` rows for that report.
+- **Rejected:** Leaving both alone as historical facts.
+- **Why:** Both feed the stale-alert query, and leaving them would produce wrong alerts rather
+  than merely untidy data. A rejected report is not awaiting a decision, so it must not age
+  towards an alert; and a *new* submission deserves a clean slate, otherwise an approver's
+  dismissal from a previous round silently suppresses the alert for a resubmission they have
+  never seen. The audit trail is unaffected — the real submission history lives in
+  `report_events`, which is what makes it safe to treat these two columns as current state
+  rather than as history.
 
 ## Decision 6 — Approver assignment routes work, it does not gate authority
 
@@ -74,5 +111,15 @@ chosen. At least one entry is a decision later reversed.
   assigned approver is its owner can never be decided at all. The alternative reading is
   defensible; this one is documented rather than left implicit.
 
-*(A later-reversed decision will be recorded here, with a **Later reversed:** line on whichever
-entry it turns out to be, once the build produces one.)*
+## Decision 9 — Tests run against a real Postgres, not SQLite
+
+- **Chose:** A disposable `expense_reimbursement_test` database, created per test session and
+  built by running the actual Alembic migrations.
+- **Rejected:** SQLite in-memory for speed.
+- **Why:** Almost everything worth testing here is Postgres-specific — native enum columns,
+  `NUMERIC` money, `date_trunc('week', …)` bucketing for the dashboard, and the triggers that
+  make history immutable. On SQLite those either behave differently or do not exist, so the
+  suite would have been green while the deployed system misbehaved. Building the schema by
+  running the migrations means the migrations are covered too, rather than being the one
+  untested part of the system. The cost is a slower suite (~3 minutes) and a hard dependency on
+  a running database, which is the right trade for a system whose correctness lives in SQL.

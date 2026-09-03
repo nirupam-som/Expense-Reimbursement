@@ -31,8 +31,44 @@ than retrofitting it.
 
 ## Estimated vs. actual
 
-*To be filled in per session as the work happens.*
+What the estimate got wrong, in both directions:
+
+- **Sessions 3 and 4 were cheaper than budgeted**, because centralising every rule in
+  `can_transition()` meant the bulk endpoints (planned for session 5) cost almost nothing when I
+  got to them — they are a loop around a function that already existed and was already tested.
+  Building the shared function first was the single highest-leverage choice in the project.
+- **Session 4 was more expensive than budgeted** in one specific place: the immutability
+  guarantee. The design said "revoke UPDATE/DELETE grants", and writing the migration is what
+  exposed that a revoke does not bind the table owner — which is the role a single-role free-tier
+  deployment uses. Swapping to a trigger and writing a test that proves it with raw SQL took
+  longer than the original plan allowed. Recorded as the reversal in `docs/decisions.md`.
+- **The test suite cost more than expected**, mostly deliberately: running it against a real
+  disposable Postgres built by the actual migrations (rather than SQLite) means it takes ~3
+  minutes, but it covers native enums, `NUMERIC` money, `date_trunc` week bucketing and the
+  triggers — none of which SQLite would have exercised faithfully.
+
+Two bugs the process caught that the design would not have:
+
+1. `email-validator` rejects reserved TLDs, so the original `@acme.test` demo accounts could
+   never have signed in. The seed script wrote them happily (it bypasses Pydantic); the first
+   test that tried to *log in* failed immediately.
+2. `/health/db` hung for 90 seconds against an unreachable database instead of reporting a
+   problem, because the engine had no connect timeout — which would have made the hosting
+   platform's readiness probe hang rather than fail.
 
 ## What was cut when time ran short
 
-*To be filled in.*
+Nothing from the ten goals. What was consciously left out:
+
+- **The optional LangChain rejection-reason assistant.** Designed in `docs/architecture.md`,
+  scoped small on purpose, and not built — it is a stretch idea, and stretch ideas do not
+  substitute for finishing the ten properly.
+- **Frontend tests.** The honest weak point, recorded in `SUBMISSION.md`. With the rules all
+  enforced server-side and covered there, UI tests were the least valuable use of the remaining
+  time — but "least valuable" is not "worthless", and it is where I would spend the next hour.
+- **Inline editing of existing expense lines.** Lines can be added and removed while a report is
+  a Draft, but changing one means removing and re-adding it. The API supports `PATCH` on a line;
+  the UI does not surface it yet.
+- **Every performance improvement `docs/schema.md` identifies** — trigram search index, keyset
+  pagination, cached totals, materialised dashboard views. All of them are premature at this
+  data scale, and all of them are documented as the upgrade path rather than half-built.

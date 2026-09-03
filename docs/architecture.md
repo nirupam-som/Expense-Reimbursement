@@ -45,8 +45,9 @@ trusted for anything.**
 
 Email + password, JWT-based, stateless on the server.
 
-- Signup hashes the password (`bcrypt` via `passlib`) before storing it — plaintext is never
-  written or logged.
+- Signup hashes the password with `bcrypt` before storing it — plaintext is never written or
+  logged. (The `bcrypt` library directly, not via `passlib`: passlib is unmaintained and warns
+  against bcrypt 4.x, and only two functions were needed from it.)
 - Login verifies the hash and, on success, issues a JWT signed with a server-held secret
   (`HS256`), containing `sub` (user id), `role`, and a short expiry (24h).
 - The client sends the token back as `Authorization: Bearer <token>` on every subsequent
@@ -142,13 +143,16 @@ Two layers of enforcement, matching the Validation split above:
 
 - **Application layer** — there is no `PATCH`/`DELETE` route for either table. The capability to
   edit or remove a history entry simply doesn't exist in the API surface.
-- **Database layer** — the application's database role has `INSERT`/`SELECT` but not
-  `UPDATE`/`DELETE` privileges on `report_events` and `report_comments`, so even a bug in
-  application code (a stray query, a future refactor that adds an edit route by mistake) cannot
-  silently violate "nothing in this timeline can be edited or deleted after the fact, including
-  by approvers." This is the one place a DB-level guarantee is used instead of relying on
-  application discipline alone, because the README calls out immutability as a hard requirement
-  rather than a UI nicety.
+- **Database layer** — a `BEFORE UPDATE OR DELETE` trigger on `report_events` and
+  `report_comments` raises an exception, so even a bug in application code (a stray query, a
+  future refactor that adds an edit route by mistake) cannot silently violate "nothing in this
+  timeline can be edited or deleted after the fact, including by approvers." This is the one
+  place a DB-level guarantee is used instead of relying on application discipline alone, because
+  the README calls out immutability as a hard requirement rather than a UI nicety.
+
+  This was originally designed as revoked `UPDATE`/`DELETE` grants and changed during
+  implementation — a revoke does not bind the table's owner, which is exactly the role a
+  single-role free-tier deployment connects as. See `docs/decisions.md`, Decision 5.
 
 Every lifecycle transition writes its `report_events` row in the same transaction as the status
 update (see the end-to-end walkthrough below), so a report's current `status` and its timeline
@@ -360,7 +364,7 @@ report id.
   (role check + ownership check) don't warrant a policy engine — that's solving a more general
   problem than the one in front of us.
 - **No event-sourcing / full audit-log framework.** The immutability requirement (goal 9) is
-  satisfied by two focused append-only tables with revoked UPDATE/DELETE grants, not by
+  satisfied by two focused append-only tables guarded by database triggers, not by
   rearchitecting persistence around events.
 - **No client-side state management library (Redux/Zustand/etc.), no client-side data cache
   (React Query, etc.).** A handful of screens with plain component state and direct API calls is

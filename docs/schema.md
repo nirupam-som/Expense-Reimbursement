@@ -29,16 +29,24 @@ are rejected at the database layer regardless of which application code writes t
 | Column | Type | Null | Key | Notes |
 |---|---|---|---|---|
 | `id` | `BIGSERIAL` | NOT NULL | PK | |
-| `email` | `CITEXT` | NOT NULL | UNIQUE | case-insensitive so `A@x.com`/`a@x.com` can't both register |
-| `password_hash` | `TEXT` | NOT NULL | | bcrypt hash, never the plaintext |
+| `email` | `VARCHAR(255)` | NOT NULL | UNIQUE | lower-cased by the application before writing |
+| `full_name` | `VARCHAR(120)` | NOT NULL | | shown wherever a report names its owner or approver |
+| `password_hash` | `VARCHAR(255)` | NOT NULL | | bcrypt hash, never the plaintext |
 | `role` | `user_role` | NOT NULL | | `employee` or `approver` |
 | `created_at` | `TIMESTAMPTZ` | NOT NULL DEFAULT `now()` | | |
 
 **Indexes**: unique index on `email` (from the `UNIQUE` constraint — this is also the login
 lookup path, so it's load-bearing, not incidental).
 
-**Deliberately omitted**: no `updated_at`, no soft-delete flag, no profile fields. Nothing in the
-10 goals requires editing a user record after creation or deactivating one.
+**`VARCHAR` + application-level lower-casing rather than `CITEXT`** (as originally designed):
+`CITEXT` needs `CREATE EXTENSION citext`, which is one more thing that can fail on a managed
+host whose permissions vary. Normalising in one place — the Pydantic validator on the way in —
+achieves the same case-insensitive sign-in with no extension dependency. Covered by
+`tests/test_access.py::test_signup_and_login`.
+
+**Deliberately omitted**: no `updated_at`, no soft-delete flag, no profile fields beyond a
+display name. Nothing in the 10 goals requires editing a user record after creation or
+deactivating one.
 
 ## `expense_reports`
 
@@ -233,13 +241,17 @@ state of a different row.**
   non-empty `description`/`body` text.
 - `ENUM` types for `role`, `status`, `category` — an invalid value is rejected at insert/update
   time regardless of which application code, migration, or manual `psql` session wrote it.
-- Immutability of `report_events` and `report_comments` — the application's runtime database role
-  is granted `INSERT`/`SELECT` only on these two tables, not `UPDATE`/`DELETE`. This is a genuine
-  database-layer guarantee, not just an omitted API route — *with one caveat*: it only holds if
-  migrations run under a separate, more privileged role than the one the running application
-  connects with. If the app connected using the same superuser/owner role used for migrations,
-  the revoked grants would be meaningless (the owning role bypasses its own grants). This
-  two-roles setup is itself a decision worth recording in `docs/decisions.md` once built.
+- Immutability of `report_events` and `report_comments` — a `BEFORE UPDATE OR DELETE` trigger on
+  each table raises an exception, so the database refuses the statement outright. This is a
+  genuine database-layer guarantee, not just an omitted API route.
+
+  **This started as `REVOKE UPDATE, DELETE` and was changed during implementation.** A revoke only
+  binds roles *other than* the table's owner, and the free hosting tiers this deploys to encourage
+  a single-role setup where the application connects as the owner — which would have made the
+  revoke decorative. The trigger holds for every non-superuser regardless of how roles are
+  configured, so it is the portable guarantee. Recorded as a reversal in `docs/decisions.md`.
+  Verified by `tests/test_history.py`, which asserts that raw SQL `UPDATE`/`DELETE` on both tables
+  fails.
 
 **Enforced by the application:**
 - Self-approval prevention (see below) — inherently needs "who is calling this," which has no
@@ -263,10 +275,12 @@ Two independent layers, deliberately redundant:
 
 1. **No API route exists** to update or delete a `report_events` or `report_comments` row. The
    capability simply isn't wired up in FastAPI.
-2. **The database role the application connects as has no `UPDATE`/`DELETE` grant** on either
-   table. Even a future bug — a stray migration, a copy-pasted route, a raw query slipped into an
-   unrelated handler — cannot mutate history, because the database itself refuses the statement,
-   independent of application logic being correct.
+2. **A `BEFORE UPDATE OR DELETE` trigger on each table raises an exception.** Even a future bug —
+   a stray migration, a copy-pasted route, a raw query slipped into an unrelated handler — cannot
+   mutate history, because the database itself refuses the statement, independent of application
+   logic being correct. `TRUNCATE` is the one exception (it does not fire row-level triggers),
+   which is what lets the seed script reset a demo database; that is an administrative operation,
+   not something the application can reach.
 
 Layer 2 is the one that actually matters for the README's "nothing in this timeline can be
 edited or deleted after the fact, **including by approvers**" — it holds regardless of role
