@@ -27,3 +27,15 @@ app.add_middleware(
 )
 
 app.include_router(api_router)
+
+
+@app.get("/")
+def root() -> dict[str, str]:
+    return {
+        "title": app.title,
+        "description": app.description,
+        "version": app.version,
+        "docs": "/docs",
+        "health": "/health",
+    }
+

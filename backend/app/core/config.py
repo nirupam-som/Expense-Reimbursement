@@ -37,6 +37,13 @@ class Settings(BaseSettings):
     def cors_origin_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
 
+    def model_post_init(self, __context: object) -> None:
+        if isinstance(self.database_url, str):
+            if self.database_url.startswith("postgres://"):
+                self.database_url = self.database_url.replace("postgres://", "postgresql+psycopg://", 1)
+            elif self.database_url.startswith("postgresql://") and not self.database_url.startswith("postgresql+"):
+                self.database_url = self.database_url.replace("postgresql://", "postgresql+psycopg://", 1)
+
 
 @lru_cache
 def get_settings() -> Settings:
@@ -44,3 +51,4 @@ def get_settings() -> Settings:
 
 
 settings = get_settings()
+
