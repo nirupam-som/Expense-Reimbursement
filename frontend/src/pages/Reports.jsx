@@ -1,5 +1,18 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import {
+  FileText,
+  CheckSquare,
+  Plus,
+  Download,
+  Check,
+  X,
+  Search,
+  Filter,
+  ArrowUpDown,
+  Calendar,
+  Layers,
+} from 'lucide-react'
 
 import * as api from '../api/endpoints.js'
 import { useAuth } from '../auth/AuthContext.jsx'
@@ -36,12 +49,15 @@ function NewReportForm({ onCreated, onCancel }) {
   }
 
   return (
-    <section className="card">
-      <h2 className="card__title">New expense report</h2>
+    <section className="card card--highlight">
+      <div className="card__title-row">
+        <Plus size={18} className="card__title-icon" />
+        <h2 className="card__title">New expense report</h2>
+      </div>
       <Banner onDismiss={() => setError(null)}>{error}</Banner>
       <form className="form-row" onSubmit={submit}>
         <label className="grow">
-          Title
+          Report title
           <input
             value={form.title}
             onChange={update('title')}
@@ -58,8 +74,12 @@ function NewReportForm({ onCreated, onCancel }) {
           <input type="date" value={form.date_range_end} onChange={update('date_range_end')} required />
         </label>
         <div className="form-row__actions">
-          <button type="submit" className="button button--primary">Create</button>
-          <button type="button" className="button button--ghost" onClick={onCancel}>Cancel</button>
+          <button type="submit" className="button button--primary">
+            <Plus size={16} /> Create report
+          </button>
+          <button type="button" className="button button--ghost" onClick={onCancel}>
+            Cancel
+          </button>
         </div>
       </form>
     </section>
@@ -148,7 +168,6 @@ export default function Reports({ queueMode = false }) {
       current.includes(id) ? current.filter((item) => item !== id) : [...current, id],
     )
 
-  // Only Submitted reports can be decided, so only those are selectable.
   const selectable = (data?.items ?? []).filter((item) => item.status === 'submitted')
   const allSelected = selectable.length > 0 && selected.length === selectable.length
 
@@ -190,7 +209,11 @@ export default function Reports({ queueMode = false }) {
     <div className="stack-lg">
       <div className="page__header">
         <div>
-          <h1>{queueMode ? 'Approval queue' : 'Expense reports'}</h1>
+          <div className="greeting-badge">
+            {queueMode ? <CheckSquare size={14} /> : <FileText size={14} />}
+            <span>{queueMode ? 'Review & Decisions' : 'Expense Management'}</span>
+          </div>
+          <h1>{queueMode ? 'Approval Queue' : 'Expense Reports'}</h1>
           <p className="muted">
             {queueMode
               ? 'Reports submitted and awaiting a decision.'
@@ -202,7 +225,8 @@ export default function Reports({ queueMode = false }) {
         <div className="page__actions">
           {isApprover && (
             <button type="button" className="button" onClick={exportCsv}>
-              Export reimbursements due (CSV)
+              <Download size={16} />
+              Export CSV
             </button>
           )}
           {!queueMode && (
@@ -211,7 +235,15 @@ export default function Reports({ queueMode = false }) {
               className="button button--primary"
               onClick={() => setCreating((value) => !value)}
             >
-              New report
+              {creating ? (
+                <>
+                  <X size={16} /> Cancel
+                </>
+              ) : (
+                <>
+                  <Plus size={16} /> New report
+                </>
+              )}
             </button>
           )}
         </div>
@@ -231,16 +263,18 @@ export default function Reports({ queueMode = false }) {
       )}
 
       <section className="card">
-        {/* Every one of these controls is a server-side query parameter — nothing here
-            filters an already-loaded list in the browser. */}
         <div className="filters">
           <label className="grow">
             Search titles
-            <input
-              value={filters.search}
-              onChange={setFilter('search')}
-              placeholder="Search by report title…"
-            />
+            <div className="input-icon-wrap">
+              <Search size={15} className="input-icon" />
+              <input
+                value={filters.search}
+                onChange={setFilter('search')}
+                placeholder="Search by report title…"
+                style={{ paddingLeft: '2.2rem' }}
+              />
+            </div>
           </label>
 
           <label>
@@ -332,7 +366,7 @@ export default function Reports({ queueMode = false }) {
               disabled={busy}
               onClick={() => runBulk('approve')}
             >
-              Approve selected
+              <Check size={16} /> Approve selected
             </button>
             <button
               type="button"
@@ -340,7 +374,7 @@ export default function Reports({ queueMode = false }) {
               disabled={busy}
               onClick={() => runBulk('reject')}
             >
-              Reject selected
+              <X size={16} /> Reject selected
             </button>
             <button type="button" className="button button--ghost" onClick={() => setSelected([])}>
               Clear
@@ -404,12 +438,12 @@ export default function Reports({ queueMode = false }) {
                       <span className="tag tag--warn">Yours</span>
                     )}
                   </td>
-                  <td>{report.owner.full_name}</td>
+                  <td className="text-secondary">{report.owner.full_name}</td>
                   <td className="muted">
                     {formatDate(report.date_range_start)} – {formatDate(report.date_range_end)}
                   </td>
                   <td><StatusBadge status={report.status} /></td>
-                  <td className="right mono">{formatMoney(report.total)}</td>
+                  <td className="right mono text-bold">{formatMoney(report.total)}</td>
                 </tr>
               ))}
             </tbody>

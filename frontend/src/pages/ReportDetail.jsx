@@ -1,5 +1,22 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import {
+  ArrowLeft,
+  Send,
+  Check,
+  X,
+  CreditCard,
+  Archive,
+  RotateCcw,
+  Receipt,
+  Plus,
+  Users,
+  History,
+  MessageSquare,
+  AlertTriangle,
+  Lock,
+  Trash2,
+} from 'lucide-react'
 
 import * as api from '../api/endpoints.js'
 import { useAuth } from '../auth/AuthContext.jsx'
@@ -47,7 +64,7 @@ function LineEditor({ reportId, onChanged }) {
           <input type="date" value={line.expense_date} onChange={update('expense_date')} required />
         </label>
         <label>
-          Amount
+          Amount (₹)
           <input
             type="number"
             step="0.01"
@@ -76,7 +93,9 @@ function LineEditor({ reportId, onChanged }) {
           />
         </label>
         <div className="form-row__actions">
-          <button type="submit" className="button button--primary">Add line</button>
+          <button type="submit" className="button button--primary">
+            <Plus size={16} /> Add line
+          </button>
         </div>
       </form>
     </>
@@ -85,7 +104,7 @@ function LineEditor({ reportId, onChanged }) {
 
 function Timeline({ entries }) {
   if (entries.length === 0) {
-    return <p className="muted">Nothing has happened to this report yet.</p>
+    return <p className="muted margin-top-sm">Nothing has happened to this report yet.</p>
   }
 
   return (
@@ -106,7 +125,7 @@ function Timeline({ entries }) {
             ) : (
               <p className="timeline__comment">{entry.body}</p>
             )}
-            {entry.reason && <p className="timeline__reason">“{entry.reason}”</p>}
+            {entry.reason && <p className="timeline__reason">"{entry.reason}"</p>}
           </div>
         </li>
       ))}
@@ -147,8 +166,6 @@ export default function ReportDetail() {
 
   const isOwner = report.owner.id === user.id
   const isDraft = report.status === 'draft'
-  // The server decides all of this too; the UI just avoids offering moves it knows will
-  // be refused. Anything it gets wrong still comes back as a clear error from the API.
   const canDecide = isApprover && !isOwner && report.status === 'submitted'
   const canMarkPaid = isApprover && !isOwner && report.status === 'approved'
 
@@ -178,7 +195,7 @@ export default function ReportDetail() {
       <div className="page__header">
         <div>
           <button type="button" className="link-back" onClick={() => navigate(-1)}>
-            ← Back
+            <ArrowLeft size={16} /> Back
           </button>
           <h1>{report.title}</h1>
           <p className="muted">
@@ -190,7 +207,7 @@ export default function ReportDetail() {
         <div className="report__summary">
           <StatusBadge status={report.status} />
           <div className="report__total">
-            <span className="muted">Total</span>
+            <span className="report__total-label">Total</span>
             <strong>{formatMoney(report.total)}</strong>
           </div>
         </div>
@@ -207,7 +224,7 @@ export default function ReportDetail() {
             disabled={busy}
             onClick={() => run(() => api.submitReport(report.id), 'Submitted for approval.')}
           >
-            Submit for approval
+            <Send size={16} /> Submit for approval
           </button>
         )}
         {canDecide && (
@@ -218,10 +235,10 @@ export default function ReportDetail() {
               disabled={busy}
               onClick={() => run(() => api.approveReport(report.id), 'Approved.')}
             >
-              Approve
+              <Check size={16} /> Approve
             </button>
             <button type="button" className="button button--danger" disabled={busy} onClick={reject}>
-              Reject
+              <X size={16} /> Reject
             </button>
           </>
         )}
@@ -232,12 +249,12 @@ export default function ReportDetail() {
             disabled={busy}
             onClick={() => run(() => api.markReportPaid(report.id), 'Marked as paid.')}
           >
-            Mark as paid
+            <CreditCard size={16} /> Mark as paid
           </button>
         )}
         {isApprover && isOwner && report.status === 'submitted' && (
           <p className="notice">
-            You own this report, so you cannot decide on it yourself — it has to wait for a
+            <AlertTriangle size={16} /> You own this report, so you cannot decide on it yourself — it has to wait for a
             different approver.
           </p>
         )}
@@ -256,15 +273,30 @@ export default function ReportDetail() {
               )
             }
           >
-            {report.is_archived ? 'Restore' : 'Archive'}
+            {report.is_archived ? (
+              <>
+                <RotateCcw size={16} /> Restore
+              </>
+            ) : (
+              <>
+                <Archive size={16} /> Archive
+              </>
+            )}
           </button>
         )}
       </div>
 
       <section className="card card--flush">
         <div className="card__header">
-          <h2 className="card__title">Expense lines</h2>
-          {!isDraft && <span className="muted">Locked — the report is {STATUS_LABELS[report.status]}</span>}
+          <div className="card__title-row">
+            <Receipt size={18} className="card__title-icon" />
+            <h2 className="card__title">Expense lines</h2>
+          </div>
+          {!isDraft && (
+            <span className="badge badge--submitted">
+              <Lock size={12} /> Locked — {STATUS_LABELS[report.status]}
+            </span>
+          )}
         </div>
 
         <table className="table">
@@ -280,25 +312,33 @@ export default function ReportDetail() {
           <tbody>
             {report.lines.length === 0 && (
               <tr>
-                <td colSpan={5} className="muted">No lines yet.</td>
+                <td colSpan={5} className="muted text-center padding-lg">
+                  No expense lines yet. Add your first line below.
+                </td>
               </tr>
             )}
             {report.lines.map((line) => (
               <tr key={line.id}>
                 <td>{formatDate(line.expense_date)}</td>
-                <td>{CATEGORY_LABELS[line.category]}</td>
-                <td>{line.description}</td>
-                <td className="right mono">{formatMoney(line.amount)}</td>
+                <td>
+                  <span className="badge badge--submitted">
+                    {CATEGORY_LABELS[line.category]}
+                  </span>
+                </td>
+                <td className="text-secondary">{line.description}</td>
+                <td className="right mono text-bold">
+                  {formatMoney(line.amount)}
+                </td>
                 {isOwner && isDraft && (
                   <td className="right">
                     <button
                       type="button"
-                      className="button button--ghost button--small"
+                      className="button button--ghost button--small text-danger"
                       onClick={() =>
                         run(() => api.deleteLine(report.id, line.id), 'Line removed.')
                       }
                     >
-                      Remove
+                      <Trash2 size={14} /> Remove
                     </button>
                   </td>
                 )}
@@ -309,9 +349,13 @@ export default function ReportDetail() {
             <tr>
               <td colSpan={3}>
                 <strong>Total</strong>
-                <span className="muted"> — calculated by the server from the lines above</span>
+                <span className="muted margin-left-xs text-xs">
+                  — calculated server-side from the lines above
+                </span>
               </td>
-              <td className="right mono"><strong>{formatMoney(report.total)}</strong></td>
+              <td className="right mono text-bold text-lg">
+                {formatMoney(report.total)}
+              </td>
               {isOwner && isDraft && <td />}
             </tr>
           </tfoot>
@@ -326,14 +370,19 @@ export default function ReportDetail() {
 
       <div className="grid-2">
         <section className="card">
-          <h2 className="card__title">Assigned approvers</h2>
-          <p className="muted">
+          <div className="card__title-row">
+            <Users size={18} className="card__title-icon" />
+            <h2 className="card__title">Assigned approvers</h2>
+          </div>
+          <p className="muted text-xs">
             Assignment decides whose queue this appears in. Any approver who does not own
             the report can still decide on it.
           </p>
 
           <ul className="chips">
-            {report.approvers.length === 0 && <li className="muted">Nobody assigned yet.</li>}
+            {report.approvers.length === 0 && (
+              <li className="muted italic text-sm">Nobody assigned yet.</li>
+            )}
             {report.approvers.map((person) => (
               <li className="chip" key={person.id}>
                 {person.full_name}
@@ -378,8 +427,11 @@ export default function ReportDetail() {
         </section>
 
         <section className="card">
-          <h2 className="card__title">History</h2>
-          <p className="muted">
+          <div className="card__title-row">
+            <History size={18} className="card__title-icon" />
+            <h2 className="card__title">History</h2>
+          </div>
+          <p className="muted text-xs">
             Every status change and comment, permanently. Nothing here can be edited or
             deleted — by anyone.
           </p>
@@ -401,8 +453,8 @@ export default function ReportDetail() {
               placeholder="Add a comment…"
               rows={2}
             />
-            <button type="submit" className="button" disabled={busy || !comment.trim()}>
-              Comment
+            <button type="submit" className="button button--primary" disabled={busy || !comment.trim()}>
+              <MessageSquare size={15} /> Post
             </button>
           </form>
         </section>

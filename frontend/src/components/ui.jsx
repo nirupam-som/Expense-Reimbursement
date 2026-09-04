@@ -1,4 +1,4 @@
-/** Small shared presentational pieces. */
+import { Loader2, FolderOpen, ChevronLeft, ChevronRight } from 'lucide-react'
 
 // en-IN also gives Indian digit grouping (₹1,22,200.00 rather than ₹122,200.00).
 const CURRENCY = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' })
@@ -58,6 +58,7 @@ export function Banner({ kind = 'error', children, onDismiss }) {
 export function EmptyState({ title, hint }) {
   return (
     <div className="empty">
+      <FolderOpen className="empty__icon" size={40} />
       <p className="empty__title">{title}</p>
       {hint && <p className="empty__hint">{hint}</p>}
     </div>
@@ -65,7 +66,12 @@ export function EmptyState({ title, hint }) {
 }
 
 export function Spinner({ label = 'Loading…' }) {
-  return <p className="muted">{label}</p>
+  return (
+    <div className="spinner">
+      <Loader2 className="spinner__icon" size={32} />
+      <span>{label}</span>
+    </div>
+  )
 }
 
 export function Pagination({ page, pageSize, total, onPage }) {
@@ -75,19 +81,18 @@ export function Pagination({ page, pageSize, total, onPage }) {
 
   return (
     <div className="pagination">
-      {/* `total` is the count of every match on the server, not just this page. */}
       <span className="muted">
         {total === 0 ? 'No matches' : `${first}–${last} of ${total}`}
       </span>
       <div className="pagination__buttons">
         <button type="button" disabled={page <= 1} onClick={() => onPage(page - 1)}>
-          Previous
+          <ChevronLeft size={16} /> Previous
         </button>
         <span className="muted">
           Page {page} of {lastPage}
         </span>
         <button type="button" disabled={page >= lastPage} onClick={() => onPage(page + 1)}>
-          Next
+          Next <ChevronRight size={16} />
         </button>
       </div>
     </div>

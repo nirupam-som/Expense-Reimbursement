@@ -23,8 +23,10 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expires_minutes: int = 60 * 24
 
-    # Comma-separated in the environment; split into a list by cors_origin_list below.
-    cors_origins: str = "http://localhost:5173"
+    cors_origins: str = (
+        "http://localhost:5173,http://localhost:5174,http://localhost:5175,"
+        "http://127.0.0.1:5173,http://127.0.0.1:5174,http://127.0.0.1:5175"
+    )
 
     # Goal 10. N = how long Submitted may sit before it is stale;
     # M = how long a dismissal suppresses the alert before it returns.

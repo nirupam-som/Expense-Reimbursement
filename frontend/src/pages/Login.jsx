@@ -1,14 +1,15 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Receipt, ArrowRight, ShieldCheck, User } from 'lucide-react'
 
 import { useAuth } from '../auth/AuthContext.jsx'
 import { Banner } from '../components/ui.jsx'
 
 const DEMO_ACCOUNTS = [
-  { email: 'priya@acme.com', label: 'Priya Sharma — approver' },
-  { email: 'daniel@acme.com', label: 'Daniel Okafor — approver' },
-  { email: 'aisha@acme.com', label: 'Aisha Khan — employee' },
-  { email: 'tom@acme.com', label: 'Tom Becker — employee' },
+  { email: 'priya@acme.com',  label: 'Priya Sharma',  role: 'Approver' },
+  { email: 'daniel@acme.com', label: 'Daniel Okafor', role: 'Approver' },
+  { email: 'aisha@acme.com',  label: 'Aisha Khan',    role: 'Employee' },
+  { email: 'tom@acme.com',    label: 'Tom Becker',    role: 'Employee' },
 ]
 
 export default function Login() {
@@ -48,10 +49,23 @@ export default function Login() {
   return (
     <div className="auth">
       <div className="auth__card">
-        <h1 className="auth__title">Expense Reimbursement</h1>
-        <p className="muted">
-          Submit expenses, get them approved by someone other than yourself, and see what
-          the company owes.
+        <div className="auth__logo">
+          <div className="auth__logo-mark">
+            <Receipt size={22} />
+          </div>
+          <div>
+            <div className="auth__logo-name">ExpenseFlow</div>
+            <div className="auth__logo-tag">Reimbursement Platform</div>
+          </div>
+        </div>
+
+        <h1 className="auth__title">
+          {mode === 'signin' ? 'Welcome back' : 'Create account'}
+        </h1>
+        <p className="muted margin-bottom-xs">
+          {mode === 'signin'
+            ? 'Sign in to manage your expense reports.'
+            : 'Join your team on ExpenseFlow.'}
         </p>
 
         <div className="tabs">
@@ -77,13 +91,26 @@ export default function Login() {
           {mode === 'signup' && (
             <label>
               Full name
-              <input value={form.full_name} onChange={update('full_name')} required />
+              <input
+                value={form.full_name}
+                onChange={update('full_name')}
+                placeholder="Your full name"
+                required
+                autoComplete="name"
+              />
             </label>
           )}
 
           <label>
-            Email
-            <input type="email" value={form.email} onChange={update('email')} required />
+            Email address
+            <input
+              type="email"
+              value={form.email}
+              onChange={update('email')}
+              placeholder="you@company.com"
+              required
+              autoComplete="email"
+            />
           </label>
 
           <label>
@@ -92,8 +119,10 @@ export default function Login() {
               type="password"
               value={form.password}
               onChange={update('password')}
+              placeholder={mode === 'signup' ? 'At least 8 characters' : '••••••••'}
               required
               minLength={mode === 'signup' ? 8 : 1}
+              autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
             />
           </label>
 
@@ -107,23 +136,45 @@ export default function Login() {
             </label>
           )}
 
-          <button type="submit" className="button button--primary" disabled={busy}>
-            {busy ? 'Please wait…' : mode === 'signin' ? 'Sign in' : 'Create account'}
+          <button
+            type="submit"
+            className="button button--primary button--lg"
+            disabled={busy}
+          >
+            {busy ? (
+              'Please wait…'
+            ) : mode === 'signin' ? (
+              <>
+                Sign in <ArrowRight size={16} />
+              </>
+            ) : (
+              <>
+                Create account <ArrowRight size={16} />
+              </>
+            )}
           </button>
         </form>
 
         {mode === 'signin' && (
           <div className="auth__demo">
-            <p className="muted">Demo accounts — password <code>password123</code></p>
+            <p className="muted">
+              Demo accounts — password <code>password123</code>
+            </p>
             <div className="auth__demo-list">
               {DEMO_ACCOUNTS.map((account) => (
                 <button
                   key={account.email}
                   type="button"
-                  className="button button--ghost"
-                  onClick={() => setForm({ ...form, email: account.email, password: 'password123' })}
+                  className="auth__demo-btn"
+                  onClick={() =>
+                    setForm({ ...form, email: account.email, password: 'password123' })
+                  }
                 >
-                  {account.label}
+                  <span className="text-bold">{account.label}</span>
+                  <span className="auth__demo-role">
+                    {account.role === 'Approver' ? <ShieldCheck size={12} /> : <User size={12} />}
+                    {account.role}
+                  </span>
                 </button>
               ))}
             </div>
