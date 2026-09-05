@@ -2,8 +2,8 @@
 
 ## Links
 
-- **GitHub repository:** <public repo URL — https://github.com/nirupam-som/Expense-Reimbursement>
-- **Live application:** <deployed URL — https://expense-reimbursement-2f5d.vercel.app/>
+- **GitHub repository:** <public repo URL — https://github.com/nirupam-som/Expense-Reimbursement    >
+- **Live application:** <deployed URL — https://expense-reimbursement-2f5d.vercel.app/    >
 
 ## Notes for the reviewer
 
