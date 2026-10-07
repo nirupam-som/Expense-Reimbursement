@@ -10,12 +10,12 @@ than retrofitting it.
 
 | # | Session | Planned scope | Estimated | Actual |
 |---|---|---|---|---|
-| 1 | Foundations | Scaffold, Postgres, migrations, users + auth (JWT), role field, seed script started | 2h | — |
-| 2 | Reports & lines (Goals 2, 3) | Report CRUD, line CRUD, Draft-only edit lock, server-computed totals | 2h | — |
-| 3 | Lifecycle & approvers (Goals 4, 5) | Central transition function, submit/approve/reject/mark-paid, self-approval block, approver assignment, approver queue | 2h | — |
-| 4 | History & alerts (Goals 9, 10) | Immutable `report_events` + comments written transactionally with each transition, timeline view, stale alerts + dismissal + nav badge | 2h | — |
-| 5 | Finding & bulk (Goals 6, 7) | Server-side search/filter/sort/pagination, bulk approve/reject with per-report results, CSV export | 2h | — |
-| 6 | Dashboard, deploy, docs (Goal 8) | Dashboard aggregates + 8-week chart, deployment, seed demo data, finish docs | 2h | — |
+| 1 | Foundations | Scaffold, Postgres, migrations, users + auth (JWT), role field, seed script started | 2h | 1.5h |
+| 2 | Reports & lines (Goals 2, 3) | Report CRUD, line CRUD, Draft-only edit lock, server-computed totals | 2h | 1.5h |
+| 3 | Lifecycle & approvers (Goals 4, 5) | Central transition function, submit/approve/reject/mark-paid, self-approval block, approver assignment, approver queue | 2h | 1.5h |
+| 4 | History & alerts (Goals 9, 10) | Immutable `report_events` + comments written transactionally with each transition, timeline view, stale alerts + dismissal + nav badge | 2h | 2.5h |
+| 5 | Finding & bulk (Goals 6, 7) | Server-side search/filter/sort/pagination, bulk approve/reject with per-report results, CSV export | 2h | 1.5h |
+| 6 | Dashboard, deploy, docs (Goal 8) | Dashboard aggregates + 8-week chart, deployment, seed demo data, finish docs | 2h | 2h |
 
 ## Why this order
 

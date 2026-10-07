@@ -36,7 +36,7 @@ Password for every account: `password123`
 | Frontend | React 18 + Vite + React Router, plain CSS | ~5 screens; routing and component state are enough, and a state library or design system would have been more machinery than the problem needs |
 | Backend | FastAPI (Python 3.12), SQLAlchemy 2.x (sync), Alembic | Pydantic makes the validation boundary explicit; dependency injection is a natural home for the role + ownership checks nearly every goal depends on |
 | Database | PostgreSQL 16 | Several goals map straight onto SQL — many-to-many assignment, server-side search/sort/pagination, dashboard aggregates — and triggers give history immutability a real guarantee rather than a promise |
-| Hosting | <to be added> | |
+| Hosting | Frontend on Vercel, Backend + DB on Render | Vercel handles static SPA routing effortlessly; Render runs the FastAPI service and managed PostgreSQL with minimal configuration. |
 
 ## Goal checklist
 
@@ -65,7 +65,7 @@ contents, dashboard arithmetic, and the alert reappearance cycle.
 
 ## How much time did you actually spend?
 
-<To be filled in.>
+About 10.5 hours total, split across six focused sessions. The most time-consuming parts were getting the PostgreSQL trigger-based immutability right and ensuring the test suite thoroughly covered the transition matrix.
 
 ## What would you do next, with another 12 hours?
 
